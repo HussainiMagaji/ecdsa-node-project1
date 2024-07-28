@@ -1,17 +1,9 @@
 import { useState } from "react";
 import server from "./server";
 
-import { keccak256 } from "ethereum-cryptography/keccak";
-import { utf8ToBytes } from "ethereum-cryptography/utils";
 import { secp256k1 } from "ethereum-cryptography/secp256k1";
 
-function hashMessage(message) {
-  return keccak256(utf8ToBytes(message));
-}
-
-async function signMessage(msg, privateKey) {
-  return secp256k1.sign(hashMessage(msg), privateKey);
-}
+import { hashMessage, signMessage, getNonce } from "./custom.mjs";
 
 
 function Transfer({ address, setBalance }) {
@@ -30,10 +22,11 @@ function Transfer({ address, setBalance }) {
       return;
     }
     
-    const signature = await signMessage(String(sendAmount), privateKey);
     const publicKey = secp256k1.getPublicKey(privateKey);
+    const nonce = getNonce( ).toString( );
+    const signature = await signMessage(String(sendAmount) + nonce, privateKey);
 
-    if(!secp256k1.verify(signature, hashMessage(String(sendAmount)), publicKey)) {
+    if(!secp256k1.verify(signature, hashMessage(String(sendAmount) + nonce), publicKey)) {
       alert("Signature could not be verified!");
       return;
     }
@@ -45,6 +38,7 @@ function Transfer({ address, setBalance }) {
         sender: address,
         amount: parseInt(sendAmount),
         recipient,
+        nonce,
         signature,
       });
       setBalance(balance);
